@@ -1,0 +1,168 @@
+- hosts: Namenode
+
+  vars_files:
+  - hname_var.yml
+  tasks:
+  - name: Download jdk software
+    copy:
+        dest: /root
+        src: /root/jdk-8u171-linux-x64.rpm  
+
+  - name: Download hadoop software
+    copy:
+        dest: /root
+        src: /root/hadoop-1.2.1-1.x86_64.rpm
+
+  - name: installing jdk
+    shell: "rpm -ivh /root/jdk-8u171-linux-x64.rpm" 
+    register: Java
+    ignore_errors: yes 
+
+  - name: "Java installation"
+    debug:
+        var: Java.stdout
+  - name: installing hadoop
+    shell: rpm -ivh /root/hadoop-1.2.1-1.x86_64.rpm --force 
+      
+  - name: "making a directory"
+    file: 
+        state: directory
+        path: "{{ name_dir }}"
+  - name: "configuring hdfs file"
+    template:
+        dest: /etc/hadoop/hdfs-site.xml
+        src: /etc/hadoop/hdfs-site.xml
+
+  - name: "configuring core file"
+    template:
+        dest: /etc/hadoop/core-site.xml
+        src: /etc/hadoop/core-site.xml
+
+  - name: "Formatting namenode"
+    shell: "echo Y | hadoop namenode -format"
+    register: format
+
+  - name: "formatting namenode"
+    debug: 
+        var: format.stdout
+  - name: "Firewall disable"
+    firewalld:
+        port: "9001/tcp"
+        state: enabled
+        permanent: yes
+        immediate: yes
+         
+  - name: "starting services"
+    command: hadoop-daemon.sh start namenode
+  - name: "checking services"
+    command: jps
+
+
+- hosts: Datanode
+
+  vars_files:
+  - hdata_dir.yml
+  tasks:
+  - name: Download jdk software
+    copy:
+        dest: /root
+        src: /root/jdk-8u171-linux-x64.rpm  
+
+  - name: Download hadoop software
+    copy:
+        dest: /root
+        src: /root/hadoop-1.2.1-1.x86_64.rpm
+
+  - name: installing jdk
+    shell: "rpm -ivh /root/jdk-8u171-linux-x64.rpm" 
+    register: Java
+    ignore_errors: yes 
+
+  - name: "Java installation"
+    debug:
+        var: Java.stdout
+  - name: installing hadoop
+    shell: rpm -ivh /root/hadoop-1.2.1-1.x86_64.rpm --force 
+  - name: removing directory
+    file:
+        state: absent
+        path: "{{ data_dir }}"
+    
+  - name: "making a directory"
+    file: 
+        state: directory
+        path: "{{ data_dir }}"
+  - name: "configuring hdfs file"
+    template:
+        dest: /etc/hadoop/hdfs-site.xml
+        src: /ansiblews/data_hdfs.xml
+
+
+  - name: "configuring core file"
+    template:
+        dest: /etc/hadoop/core-site.xml
+        src: /ansiblews/data_core.xml 
+  - name: "Firewall disable"
+    firewalld:
+        port: "9001/tcp"
+        state: enabled
+        permanent: yes
+        immediate: yes
+  - name: "starting service"
+    command: "hadoop-daemon.sh start datanode"
+
+  - name: "checking services"
+    command: jps
+
+
+- hosts: Client
+  vars_files:
+  - hdata_dir.yml
+  tasks:
+  
+  - name: Download jdk software
+    copy:
+        dest: /root
+        src: /root/jdk-8u171-linux-x64.rpm  
+
+  - name: Download hadoop software
+    copy:
+        dest: /root
+        src: /root/hadoop-1.2.1-1.x86_64.rpm
+
+  - name: installing jdk
+    shell: "rpm -ivh /root/jdk-8u171-linux-x64.rpm" 
+    register: Java
+    ignore_errors: yes 
+
+  - name: "Java installation"
+    debug:
+        var: Java.stdout
+  - name: installing hadoop
+    shell: rpm -ivh /root/hadoop-1.2.1-1.x86_64.rpm --force 
+   
+  
+  - name: putting data in a directory"
+    copy:
+        src: /ansiblews/client1.txt
+        dest: /root/client1.txt
+
+
+  - name: "configuring core file"
+    template:
+        dest: /etc/hadoop/core-site.xml
+        src: /ansiblews/data_core.xml 
+
+  - name: "Putting File in HDFS Cluster"
+    command: "hadoop fs -put client1.txt /"
+
+  
+
+
+
+
+
+
+
+
+
